@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Shop CRUD Example</title>
+  <script src="https://unpkg.com/react@16.14.0/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@16.14.0/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/babel-standalone@6.26.0/babel.min.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    // Shop component
+    class Shop extends React.Component {
+      render() {
+        const { name, rent, onDelete, onEdit } = this.props;
+        return (
+          <li>
+            <span>{name} - {rent}</span>
+            <button onClick={onEdit}>Edit</button>
+            <button onClick={onDelete}>Delete</button>
+          </li>
+        );
+      }
+    }
+
+    // ShopForm component
+    class ShopForm extends React.Component {
+      constructor(props) {
+        super(props);
+        this.state = {
+          name: '',
+          rent: ''
+        };
+      }
+
+      handleInputChange = (event) => {
+        const { name, value } = event.target;
+        this.setState({ [name]: value });
+      }
+
+      handleSubmit = (event) => {
+        event.preventDefault();
+        const { name, rent } = this.state;
+        if (name && rent) {
+          if (this.props.isEditing) {
+            this.props.onEditShop(this.props.currentShopId, name, parseFloat(rent));
+          } else {
+            this.props.onAddShop(name, parseFloat(rent));
+          }
+          this.setState({ name: '', rent: '' });
+        }
+      }
+
+      componentDidMount() {
+        const { isEditing, name, rent } = this.props;
+        if (isEditing) {
+          this.setState({ name, rent: rent.toString() });
+        }
+      }
+
+      componentDidUpdate(prevProps) {
+        const { isEditing, name, rent } = this.props;
+        if (isEditing && (prevProps.name !== name || prevProps.rent !== rent)) {
+          this.setState({ name, rent: rent.toString() });
+        }
+      }
+
+      render() {
+        const { name, rent } = this.state;
+
+        return (
+          <form onSubmit={this.handleSubmit}>
+            <input
+              type="text"
+              name="name"
+              value={name}
+              onChange={this.handleInputChange}
+              placeholder="Shop name"
+              required
+            />
+            <br/>
+            <input
+              type="number"
+              name="rent"
+              value={rent}
+              onChange={this.handleInputChange}
+              placeholder="Shop rent"
+              step="0.01"
+              required
+            />
+            <br/>
+            <button type="submit">{this.props.isEditing ? 'Update Shop' : 'Add Shop'}</button>
+          </form>
+        );
+      }
+    }
+
+    // ShopList component
+    class ShopList extends React.Component {
+      handleDelete = (id) => {
+        this.props.onDeleteShop(id);
+      }
+
+      handleEdit = (id) => {
+        this.props.onEditShop(id);
+      }
+
+      render() {
+        const { shops } = this.props;
+
+        return (
+          <ul>
+            {shops.map(shop => (
+              <Shop
+                key={shop.id}
+                name={shop.name}
+                rent={shop.rent}
+                onDelete={() => this.handleDelete(shop.id)}
+                onEdit={() => this.handleEdit(shop.id)}
+              />
+            ))}
+          </ul>
+        );
+      }
+    }
+
+    // App component
+    class App extends React.Component {
+      constructor(props) {
+        super(props);
+        this.state = {
+          shops: [],
+          isEditing: false,
+          currentShopId: null
+        };
+      }
+
+      addShop = (name, rent) => {
+        const newShop = { id: Date.now(), name, rent };
+        this.setState(prevState => ({
+          shops: [...prevState.shops, newShop]
+        }));
+      }
+
+      deleteShop = (id) => {
+        this.setState(prevState => ({
+          shops: prevState.shops.filter(shop => shop.id !== id)
+        }));
+      }
+
+      editShop = (id) => {
+        const shop = this.state.shops.find(shop => shop.id === id);
+        this.setState({
+          currentShopId: id,
+          isEditing: true,
+          name: shop.name,
+          rent: shop.rent
+        });
+      }
+
+      updateShop = (id, name, rent) => {
+        const updatedShops = this.state.shops.map(shop => {
+          if (shop.id === id) {
+            return { ...shop, name, rent };
+          }
+          return shop;
+        });
+        this.setState({
+          shops: updatedShops,
+          isEditing: false,
+          currentShopId: null,
+          name: '',
+          rent: ''
+        });
+      }
+
+      render() {
+        const { shops, isEditing, name, rent } = this.state;
+
+        return (
+          <div>
+            <h1>Shop CRUD Example</h1>
+
+            <ShopForm
+              onAddShop={this.addShop}
+              onEditShop={this.updateShop}
+              isEditing={isEditing}
+              currentShopId={this.state.currentShopId}
+              name={name}
+              rent={rent}
+            />
+
+            <ShopList
+              shops={shops}
+              onDeleteShop={this.deleteShop}
+              onEditShop={this.editShop}
+            />
+          </div>
+        );
+      }
+    }
+
+    // Render the App component
+    ReactDOM.render(<App />, document.getElementById('root'));
+  </script>
+</body>
+</html>
